@@ -11,6 +11,10 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 """
 
 from pathlib import Path
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -20,12 +24,13 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-7ikht6wcmb8z9i6%ejwbk(9e4v=$(fep@dg5%-$d&ma(-nqa6!'
+SECRET_KEY = os.getenv('SECRET_KEY')
+#'django-insecure-7ikht6wcmb8z9i6%ejwbk(9e4v=$(fep@dg5%-$d&ma(-nqa6!'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.getenv('DEBUG') == 'true'
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = [host.strip() for host in os.getenv('ALLOWED_HOSTS').split(',')]
 
 
 # Application definition
@@ -41,7 +46,8 @@ INSTALLED_APPS = [
     'other',
     'login',
     'store',
-    'cart'
+    'rest_framework'
+    # 'cartN'
 ]
 
 MIDDLEWARE = [
@@ -82,7 +88,20 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
         'NAME': BASE_DIR / 'db.sqlite3',
+    },
+    # 'default': {
+    #    'ENGINE': 'django.db.backends.postgresql',
+    #    'NAME': os.getenv('NAME_PGDB'),
+    #    'USER': os.getenv('USER_PGDB'),
+    #    'PASSWORD': os.getenv('PASSWORD_PGDB'),
+    #    'HOST': os.getenv('HOST_PGDB'),
+    #    'PORT': os.getenv('PORT_PGDB'),
+    # },
+    'test': {
+       'ENGINE': 'django.db.backends.sqlite3',
+       'NAME': 'test_db.sqlite3',
     }
+
 }
 
 
@@ -104,6 +123,10 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
+AUTHENTICATION_BACKENDS = [
+   'store.backends.CustomAuthBackend',
+   'django.contrib.auth.backends.ModelBackend',
+]
 
 # Internationalization
 # https://docs.djangoproject.com/en/4.2/topics/i18n/

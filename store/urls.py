@@ -2,7 +2,14 @@ from django.urls import path
 from django.contrib import admin
 from django.urls import path, include
 
-from .views import IndexViewProduct, IndexViewShop, IndexViewStoreCart
+from .views import IndexViewProduct, IndexViewShop, IndexViewStoreCart, CartViewSet
+
+from rest_framework import routers
+
+
+router = routers.DefaultRouter()
+router.register(r'cart', CartViewSet)
+
 
 app_name = 'store'
 
