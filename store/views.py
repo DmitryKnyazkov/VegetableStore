@@ -1,15 +1,15 @@
-from django.shortcuts import render
+from django.shortcuts import render, redirect
 from django.views import View
 from django.db.models import OuterRef, Subquery, F, ExpressionWrapper, DecimalField, Case, When
 from django.utils import timezone
-from .models import Product, Discount, Cart
+from .models import Product, Discount, Cart, Wishlist
 
 from django.http import JsonResponse
 from django.http import HttpResponse
 
 from rest_framework import viewsets, response
 from rest_framework.permissions import IsAuthenticated
-from .serializers import CartSerializer
+from .serializers import CartSerializer, WishlistSerializer
 from django.shortcuts import get_object_or_404
 
 class CartViewSet(viewsets.ModelViewSet):
@@ -65,6 +65,7 @@ class CartViewSet(viewsets.ModelViewSet):
 
 class IndexViewStoreCart(View):
     def get(self, request):
+
        return render(request, 'store/cart.html')
 
 class IndexViewProduct(View):
@@ -166,4 +167,132 @@ class IndexViewShop(View):
        return render(request, 'store/shop.html', {"data": products})
 
 
+
+
+
+
+
+class WishlistView(View):
+
+   def get(self, request):
+       if request.user.is_authenticated:
+           # код который необходим для обработчика
+           all_products = Wishlist.objects.filter(user=request.user)
+
+           return render(request, "store/wishlist.html", context={"data": all_products})
+       # Иначе отправляет авторизироваться
+       return redirect('login:login')  # from django.shortcuts import redirect
+
+def Wishlistdel(request, id_):
+    Wishlist.objects.get(id=id_).delete()
+
+    return redirect("store:wishlist")
+
+
+
+
+
+
+
+
+
+  # queryset = Wishlist.objects.all()
+  # serializer_class = WishlistSerializer
+  # permission_classes = (IsAuthenticated,)
+  #
+  #
+  # def get_queryset(self):
+  #     return self.queryset.filter(user=self.request.user)
+  #
+  # def create(self, request, *args, **kwargs):
+  #     ## Можно записать так, для получения товара (проверка что он уже есть в корзине)
+  #     # cart_items = Cart.objects.filter(user=request.user,
+  #     #                                  product__id=request.data.get('product'))
+  #     # Или можно так, так как мы переопределили метод get_queryset
+  #     wishlist_items = self.get_queryset().filter(product__id=request.data.get('product'))
+  #     # request API передаёт параметры по названиям полей в БД, поэтому ловим product
+  #     if wishlist_items:  # Если продукт уже есть в корзине
+  #         wishlist_item = wishlist_items[0]
+  #         if request.data.get('quantity'):  # Если в запросе передан параметр quantity,
+  #             # то добавляем значение к значению в БД
+  #             wishlist_item.quantity += int(request.data.get('quantity'))
+  #         else:  # Иначе просто добавляем значение по умолчению 1
+  #             wishlist_item.quantity += 1
+  #     else:  # Если продукта ещё нет в корзине
+  #         product = get_object_or_404(Product, id=request.data.get('product'))  # Получаем продукт и
+  #         # проверяем что он вообще существует, если его нет то выйдет ошибка 404
+  #         if request.data.get('quantity'):  # Если передаём точное количество продукта, то передаём его
+  #             wishlist_item = Wishlist(user=request.user, product=product, quantity=request.data.get('quantity'))
+  #         else:  # Иначе создаём объект по умолчанию (quantity по умолчанию = 1, так прописали в моделях)
+  #             wishlist_item = Wishlist(user=request.user, product=product)
+  #     wishlist_item.save()  # Сохранили объект в БД
+  #     return response.Response({'message': 'Product added to cart'}, status=201)
+  #
+  # def update(self, request, *args, **kwargs):
+  #     # Для удобства в kwargs передаётся id строки для изменения в БД, под параметром pk
+  #     wishlist_item = get_object_or_404(Wishlist, id=kwargs['pk'])
+  #     if request.data.get('quantity'):
+  #         wishlist_item.quantity = request.data['quantity']
+  #     if request.data.get('product'):
+  #         product = get_object_or_404(Product, id=request.data['product'])
+  #         wishlist_item.product = product
+  #     wishlist_item.save()
+  #     return response.Response({'message': 'Product change to cart'}, status=201)
+  #
+  # def destroy(self, request, *args, **kwargs):
+  #     # В этот раз напишем примерно так как это делает фреймфорк самостоятельно
+  #     wishlist_item = self.get_queryset().get(id=kwargs['pk'])
+  #     wishlist_item.delete()
+  #     return response.Response({'message': 'Product delete from cart'}, status=201)
+
+
+class WishlistViewSet(viewsets.ModelViewSet):
+  queryset = Wishlist.objects.all()
+  serializer_class = WishlistSerializer
+  permission_classes = (IsAuthenticated,)
+
+
+  def get_queryset(self):
+      return self.queryset.filter(user=self.request.user)
+
+  def create(self, request, *args, **kwargs):
+      ## Можно записать так, для получения товара (проверка что он уже есть в корзине)
+      # cart_items = Cart.objects.filter(user=request.user,
+      #                                  product__id=request.data.get('product'))
+      # Или можно так, так как мы переопределили метод get_queryset
+      wishlist_items = self.get_queryset().filter(product__id=request.data.get('product'))
+      # request API передаёт параметры по названиям полей в БД, поэтому ловим product
+      if wishlist_items:  # Если продукт уже есть в корзине
+          wishlist_item = wishlist_items[0]
+          if request.data.get('quantity'):  # Если в запросе передан параметр quantity,
+              # то добавляем значение к значению в БД
+              wishlist_item.quantity += int(request.data.get('quantity'))
+          else:  # Иначе просто добавляем значение по умолчению 1
+              wishlist_item.quantity += 1
+      else:  # Если продукта ещё нет в корзине
+          product = get_object_or_404(Product, id=request.data.get('product'))  # Получаем продукт и
+          # проверяем что он вообще существует, если его нет то выйдет ошибка 404
+          if request.data.get('quantity'):  # Если передаём точное количество продукта, то передаём его
+              wishlist_item = Wishlist(user=request.user, product=product, quantity=request.data.get('quantity'))
+          else:  # Иначе создаём объект по умолчанию (quantity по умолчанию = 1, так прописали в моделях)
+              wishlist_item = Wishlist(user=request.user, product=product)
+      wishlist_item.save()  # Сохранили объект в БД
+      return response.Response({'message': 'Product added to cart'}, status=201)
+
+  def update(self, request, *args, **kwargs):
+      # Для удобства в kwargs передаётся id строки для изменения в БД, под параметром pk
+      wishlist_item = get_object_or_404(Wishlist, id=kwargs['pk'])
+      if request.data.get('quantity'):
+          wishlist_item.quantity = request.data['quantity']
+      if request.data.get('product'):
+          product = get_object_or_404(Product, id=request.data['product'])
+          wishlist_item.product = product
+      wishlist_item.save()
+      return response.Response({'message': 'Product change to cart'}, status=201)
+
+  def destroy(self, request, *args, **kwargs):
+      # В этот раз напишем примерно так как это делает фреймфорк самостоятельно
+      wishlist_item = self.get_queryset().get(id=kwargs['pk'])
+      wishlist_item.delete()
+      return response.Response({'message': 'Product delete from cart'}, status=201)
 
